@@ -2,7 +2,7 @@ import random
 from core.citizen import Citizen, AgentType
 from core.economy import DPPNEconomy
 from models.education import EducationSystem
-from models.market import Market
+from models.market import Market, ProductCategory  # ДОБАВИТЬ ИМПОРТ
 from config.settings import SIMULATION_CONFIG, AGENT_TYPES
 
 class DPPNSimulator:
@@ -18,7 +18,8 @@ class DPPNSimulator:
             "gini_coefficients": [],
             "inflation_rates": [],
             "average_happiness": [],
-            "education_levels": []
+            "education_levels": [],
+            "market_data": []  # ДОБАВИТЬ ДЛЯ ДАННЫХ РЫНКА
         }
         
     def initialize_population(self):
@@ -37,7 +38,7 @@ class DPPNSimulator:
             self.citizens.append(citizen)
             
     def run_day(self):
-        """Запуск одного дня симуляции (обновленная версия)"""
+        """Запуск одного дня симуляции"""
         # Базовый доход для всех
         for citizen in self.citizens:
             citizen.receive_basic_income(self.config["basic_income_amount"])
@@ -65,16 +66,39 @@ class DPPNSimulator:
         """Обработка решений граждан"""
         for decision in decisions:
             if decision == "invest_in_education" and citizen.pp_balance > 20:
-                # Случайный выбор курса
-                course_type = random.choice(list(self.education_system.courses.keys()))
-                self.education_system.enroll_student(citizen, course_type)
-                
+                # Поиск доступных образовательных продуктов
+                education_products = self.market.find_affordable_products(
+                    citizen.pp_balance, ProductCategory.EDUCATION
+                )
+                if education_products:
+                    chosen_product = random.choice(education_products[:3])  # Выбор из топ-3
+                    if self.market.simulate_purchase(citizen, chosen_product):
+                        # Улучшение образования после покупки
+                        citizen.education_level = min(10, citizen.education_level + 0.5)
+                        print(f"Citizen {citizen.id} purchased education: {chosen_product.name}")
+                        
             elif decision == "buy_products":
-                # Покупка базовых товаров
-                cost = 25
-                if citizen.pp_balance >= cost:
-                    citizen.pp_balance -= cost
-                    citizen.happiness = min(100, citizen.happiness + 5)
+                # Покупка базовых товаров (еда, жилье)
+                basic_categories = [ProductCategory.FOOD, ProductCategory.HOUSING]
+                for category in basic_categories:
+                    affordable_products = self.market.find_affordable_products(
+                        citizen.pp_balance * 0.3, category  # До 30% бюджета на базовые нужды
+                    )
+                    if affordable_products:
+                        chosen_product = affordable_products[0]  # Лучший доступный товар
+                        if self.market.simulate_purchase(citizen, chosen_product):
+                            print(f"Citizen {citizen.id} purchased basic need: {chosen_product.name}")
+                        break  # Одна покупка в день
+            
+            elif decision == "buy_luxury" and citizen.pp_balance > 100:
+                # Покупка товаров роскоши при достаточном бюджете
+                luxury_products = self.market.find_affordable_products(
+                    citizen.pp_balance * 0.2, ProductCategory.LUXURY  # До 20% бюджета
+                )
+                if luxury_products:
+                    chosen_product = random.choice(luxury_products[:2])
+                    if self.market.simulate_purchase(citizen, chosen_product):
+                        print(f"Citizen {citizen.id} purchased luxury: {chosen_product.name}")
         
     def calculate_metrics(self):
         """Расчет и сохранение метрик"""
@@ -88,12 +112,19 @@ class DPPNSimulator:
         self.metrics["average_happiness"].append(sum(happiness) / len(happiness))
         self.metrics["education_levels"].append(sum(education) / len(education))
         
+        # Сохранение данных рынка
+        market_stats = self.market.get_market_statistics()
+        self.metrics["market_data"].append(market_stats)
+        
     def run_simulation(self, days=None):
         """Запуск полной симуляции"""
         days = days or self.config["simulation_days"]
         
         print(f"Starting DPPN simulation for {days} days...")
         print(f"Population: {len(self.citizens)} citizens")
+        
+        # Печать начального состояния рынка
+        self.market.print_market_report()
         
         for day in range(days):
             self.run_day()
@@ -109,7 +140,12 @@ class DPPNSimulator:
         avg_happiness = self.metrics["average_happiness"][-1]
         gini = self.metrics["gini_coefficients"][-1]
         
-        print(f"Day {day}: Avg PP={avg_balance:.1f}, Happiness={avg_happiness:.1f}, Gini={gini:.3f}")
+        # Данные рынка
+        market_stats = self.metrics["market_data"][-1] if self.metrics["market_data"] else {}
+        price_index = market_stats.get('price_index', 100)
+        
+        print(f"Day {day}: Avg PP={avg_balance:.1f}, Happiness={avg_happiness:.1f}, "
+              f"Gini={gini:.3f}, Price Index={price_index:.1f}")
         
     def print_final_report(self):
         """Финальный отчет симуляции"""
@@ -128,11 +164,21 @@ class DPPNSimulator:
         for metric, value in final_metrics.items():
             print(f"{metric}: {value:.2f}")
             
+        # Отчет рынка
+        if self.metrics["market_data"]:
+            final_market = self.metrics["market_data"][-1]
+            print(f"\nMarket Price Index: {final_market.get('price_index', 100):.1f}")
+            print(f"Total Transactions: {final_market.get('total_transactions', 0)}")
+            print(f"Transaction Volume: {final_market.get('transaction_volume', 0):.1f} PP")
+            
         # Сравнение с началом симуляции
         initial_gini = self.metrics["gini_coefficients"][0] if self.metrics["gini_coefficients"] else 0.5
         gini_change = ((final_metrics["Final Gini Coefficient"] - initial_gini) / initial_gini) * 100
         
         print(f"\nGini coefficient change: {gini_change:+.1f}%")
+        
+        # Финальный отчет рынка
+        self.market.print_market_report()
         
     def calculate_poverty_rate(self, poverty_line=50):
         """Расчет уровня бедности"""
