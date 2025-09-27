@@ -1,0 +1,46 @@
+```
+# Скомпилированные файлы Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Виртуальные окружения
+venv/
+ENV/
+env/
+.venv/
+
+# Логи и временные файлы
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.tmp
+
+# Конфигурации IDE
+.vscode/
+.idea/
+
+# Кэш pytest, coverage и др.
+.cache/
+.coverage
+.tox/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Jupyter Notebook контрольные файлы
+.ipynb_checkpoints
+
+# Библиотеки и зависимости
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Настройки системы
+.DS_Store
+Thumbs.db
+```
