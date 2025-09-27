@@ -1,0 +1,20 @@
+dppn_simulator/
+├── main.py                 # Главный запускающий файл
+├── core/
+│   ├── __init__.py
+│   ├── simulator.py        # Основной класс симулятора
+│   ├── citizen.py          # Класс гражданина-агента
+│   └── economy.py          # Экономический движок
+├── models/
+│   ├── __init__.py
+│   ├── basic_income.py     # Модель базового дохода
+│   ├── education.py        # Образовательная система
+│   └── market.py           # Рынок товаров и услуг
+├── visualization/
+│   ├── __init__.py
+│   ├── dashboard.py        # Интерактивная визуализация
+│   └── charts.py           # Графики и диаграммы
+├── config/
+│   └── settings.py         # Настройки симуляции
+└── tests/
+    └── test_simulation.py  # Тесты
