@@ -44,3 +44,6 @@ build/
 .DS_Store
 Thumbs.db
 ```
+citizens_final_state.csv
+dppn_simulation_results.png
+simulation_results.json
